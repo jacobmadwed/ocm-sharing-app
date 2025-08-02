@@ -62,17 +62,29 @@ export const getDeliveryLogs = query({
   args: {
     limit: v.optional(v.number()),
     type: v.optional(v.union(v.literal("sms"), v.literal("email"))),
+    eventName: v.optional(v.string()),
   },
-  handler: async (ctx, { limit = 50, type }) => {
-    let query = ctx.db.query("deliveryLogs");
+  handler: async (ctx, { limit = 50, type, eventName }) => {
+    let logs;
     
     if (type) {
-      query = query.withIndex("by_type", (q) => q.eq("type", type));
+      logs = await ctx.db.query("deliveryLogs")
+        .withIndex("by_type", (q) => q.eq("type", type))
+        .order("desc")
+        .take(limit * 2); // Get more to filter
+    } else {
+      logs = await ctx.db.query("deliveryLogs")
+        .order("desc")
+        .take(limit * 2); // Get more to filter
     }
     
-    return await query
-      .order("desc")
-      .take(limit);
+    // Filter by event name if specified
+    if (eventName) {
+      logs = logs.filter(log => log.eventName === eventName);
+      logs = logs.slice(0, limit); // Apply limit after filtering
+    }
+    
+    return logs;
   },
 });
 
@@ -95,14 +107,20 @@ export const getDeliveryLogsByRecipient = query({
 export const getDeliveryStats = query({
   args: {
     days: v.optional(v.number()), // How many days back to look
+    eventName: v.optional(v.string()), // Filter by specific event
   },
-  handler: async (ctx, { days = 7 }) => {
+  handler: async (ctx, { days = 7, eventName }) => {
     const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
     
-    const logs = await ctx.db
+    let logs = await ctx.db
       .query("deliveryLogs")
       .withIndex("by_created_at", (q) => q.gte("createdAt", cutoffTime))
       .collect();
+    
+    // Filter by event name if specified
+    if (eventName) {
+      logs = logs.filter(log => log.eventName === eventName);
+    }
     
     const stats = {
       total: logs.length,
@@ -135,6 +153,68 @@ export const getDeliveryStats = query({
     });
     
     return stats;
+  },
+});
+
+// Get delivery logs grouped by event
+export const getDeliveryLogsByEvent = query({
+  args: {
+    days: v.optional(v.number()),
+  },
+  handler: async (ctx, { days = 7 }) => {
+    try {
+      const cutoffTime = Date.now() - (days * 24 * 60 * 60 * 1000);
+      
+      const logs = await ctx.db
+        .query("deliveryLogs")
+        .withIndex("by_created_at", (q) => q.gte("createdAt", cutoffTime))
+        .collect();
+      
+      // Group logs by event
+      const eventGroups: Record<string, any[]> = {};
+      
+      logs.forEach((log) => {
+        const eventName = log.eventName || "No Event";
+        if (!eventGroups[eventName]) {
+          eventGroups[eventName] = [];
+        }
+        eventGroups[eventName].push(log);
+      });
+      
+      // Calculate stats for each event
+      const eventStats = Object.entries(eventGroups).map(([eventName, eventLogs]) => {
+        const stats = {
+          eventName,
+          total: eventLogs.length,
+          sms: { total: 0, delivered: 0, failed: 0, pending: 0 },
+          email: { total: 0, delivered: 0, failed: 0, pending: 0 },
+          recentLogs: eventLogs
+            .sort((a: any, b: any) => b.createdAt - a.createdAt)
+            .slice(0, 10)
+        };
+        
+        eventLogs.forEach((log: any) => {
+          const category = log.type === "sms" ? stats.sms : stats.email;
+          category.total++;
+          
+          const status = log.status.toLowerCase();
+          if (status.includes("delivered") || status.includes("sent") || status === "accepted") {
+            category.delivered++;
+          } else if (status.includes("failed") || status.includes("error")) {
+            category.failed++;
+          } else {
+            category.pending++;
+          }
+        });
+        
+        return stats;
+      });
+      
+      return eventStats.sort((a, b) => b.total - a.total);
+    } catch (error) {
+      console.error("Error in getDeliveryLogsByEvent:", error);
+      return [];
+    }
   },
 });
 

@@ -1,5 +1,6 @@
 import { createSignal, createEffect, Show, For } from "solid-js";
 import { convex } from "../lib/convex";
+import { api } from "../../convex/_generated/api";
 
 interface DeliveryLog {
   _id: string;
@@ -14,7 +15,8 @@ interface DeliveryLog {
   createdAt: number;
 }
 
-interface DeliveryStats {
+interface EventStats {
+  eventName: string;
   total: number;
   sms: {
     total: number;
@@ -28,33 +30,93 @@ interface DeliveryStats {
     failed: number;
     pending: number;
   };
+  recentLogs: DeliveryLog[];
 }
 
 export function DeliveryLogs() {
-  const [logs, setLogs] = createSignal<DeliveryLog[]>([]);
-  const [stats, setStats] = createSignal<DeliveryStats | null>(null);
+  const [eventStats, setEventStats] = createSignal<EventStats[]>([]);
+  const [allEventStats, setAllEventStats] = createSignal<EventStats[]>([]);
+  const [selectedEventFilter, setSelectedEventFilter] = createSignal<string>("all");
   const [loading, setLoading] = createSignal(false);
-  const [selectedType, setSelectedType] = createSignal<"all" | "sms" | "email">("all");
   const [checkingStatus, setCheckingStatus] = createSignal(false);
+  const [expandedEvents, setExpandedEvents] = createSignal<Set<string>>(new Set());
+
+  const filterEventStats = (allStats: EventStats[], filter: string) => {
+    if (filter === "all") {
+      setEventStats(allStats);
+    } else {
+      setEventStats(allStats.filter(stat => stat.eventName === filter));
+    }
+  };
 
   const loadLogs = async () => {
     setLoading(true);
     try {
-      const [logsData, statsData] = await Promise.all([
-        convex.query("deliveryLogs:getDeliveryLogs", { 
-          limit: 50,
-          type: selectedType() === "all" ? undefined : selectedType()
-        }),
-        convex.query("deliveryLogs:getDeliveryStats", { days: 7 })
-      ]);
+      const eventStatsData = await convex.query(api.deliveryLogs.getDeliveryLogsByEvent, { 
+        days: 7
+      });
       
-      setLogs(logsData);
-      setStats(statsData);
+      setAllEventStats(eventStatsData || []);
+      filterEventStats(eventStatsData || [], selectedEventFilter());
     } catch (error) {
       console.error("Error loading delivery logs:", error);
+      // Fallback: try to load regular logs and group them manually
+      try {
+        const regularLogs = await convex.query(api.deliveryLogs.getDeliveryLogs, { 
+          limit: 100
+        });
+        
+        // Group logs manually
+        const eventGroups: Record<string, DeliveryLog[]> = {};
+        regularLogs.forEach((log) => {
+          const eventName = log.eventName || "No Event";
+          if (!eventGroups[eventName]) {
+            eventGroups[eventName] = [];
+          }
+          eventGroups[eventName].push(log);
+        });
+        
+        const fallbackEventStats = Object.entries(eventGroups).map(([eventName, eventLogs]) => {
+          const stats = {
+            eventName,
+            total: eventLogs.length,
+            sms: { total: 0, delivered: 0, failed: 0, pending: 0 },
+            email: { total: 0, delivered: 0, failed: 0, pending: 0 },
+            recentLogs: eventLogs.sort((a, b) => b.createdAt - a.createdAt).slice(0, 10)
+          };
+          
+          eventLogs.forEach((log) => {
+            const category = log.type === "sms" ? stats.sms : stats.email;
+            category.total++;
+            
+            const status = log.status.toLowerCase();
+            if (status.includes("delivered") || status.includes("sent") || status === "accepted") {
+              category.delivered++;
+            } else if (status.includes("failed") || status.includes("error")) {
+              category.failed++;
+            } else {
+              category.pending++;
+            }
+          });
+          
+          return stats;
+        });
+        
+        setAllEventStats(fallbackEventStats);
+        filterEventStats(fallbackEventStats, selectedEventFilter());
+      } catch (fallbackError) {
+        console.error("Fallback also failed:", fallbackError);
+        setAllEventStats([]);
+        setEventStats([]);
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEventFilterChange = (newFilter: string) => {
+    setSelectedEventFilter(newFilter);
+    filterEventStats(allEventStats(), newFilter);
   };
 
   const checkDeliveryStatus = async () => {
@@ -63,11 +125,11 @@ export function DeliveryLogs() {
       console.log("🔍 Manually checking delivery status...");
       
       // Check SMS status
-      const smsResult = await convex.action("statusChecker:checkSmsDeliveryStatus");
+      const smsResult = await convex.action(api.statusChecker.checkSmsDeliveryStatus);
       console.log("SMS status check result:", smsResult);
       
       // Check email status  
-      const emailResult = await convex.action("statusChecker:checkEmailDeliveryStatus");
+      const emailResult = await convex.action(api.statusChecker.checkEmailDeliveryStatus);
       console.log("Email status check result:", emailResult);
       
       // Reload logs to show updated statuses
@@ -83,7 +145,18 @@ export function DeliveryLogs() {
     }
   };
 
-  // Load logs on component mount and when filter changes
+  const toggleEventExpansion = (eventName: string) => {
+    const expanded = expandedEvents();
+    const newExpanded = new Set(expanded);
+    if (expanded.has(eventName)) {
+      newExpanded.delete(eventName);
+    } else {
+      newExpanded.add(eventName);
+    }
+    setExpandedEvents(newExpanded);
+  };
+
+  // Load logs on component mount
   createEffect(() => {
     loadLogs();
   });
@@ -124,22 +197,25 @@ export function DeliveryLogs() {
     <div>
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
         <h3 style="font-size: 18px; font-weight: 600; margin: 0; color: #333;">
-          📊 Delivery Status
+          📊 Delivery Status by Event
         </h3>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
           <select
-            value={selectedType()}
-            onChange={(e) => setSelectedType(e.currentTarget.value as "all" | "sms" | "email")}
+            value={selectedEventFilter()}
+            onChange={(e) => handleEventFilterChange(e.currentTarget.value)}
             style="padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;"
           >
-            <option value="all">All Messages</option>
-            <option value="sms">SMS Only</option>
-            <option value="email">Email Only</option>
+            <option value="all">All Events</option>
+            <For each={allEventStats()}>
+              {(eventStat) => (
+                <option value={eventStat.eventName}>{eventStat.eventName}</option>
+              )}
+            </For>
           </select>
           <button
             onClick={checkDeliveryStatus}
             disabled={checkingStatus() || loading()}
-            style="padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; margin-right: 8px;"
+            style="padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;"
           >
             {checkingStatus() ? "Checking..." : "🔍 Check Status"}
           </button>
@@ -153,92 +229,147 @@ export function DeliveryLogs() {
         </div>
       </div>
 
-      {/* Stats Overview */}
-      <Show when={stats()}>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px;">
-          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px; text-align: center;">
-            <div style="font-size: 24px; font-weight: bold; color: #1e293b;">{stats()!.total}</div>
-            <div style="font-size: 12px; color: #64748b;">Total Messages</div>
-          </div>
-          
-          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; text-align: center;">
-            <div style="font-size: 24px; font-weight: bold; color: #16a34a;">
-              {stats()!.sms.delivered + stats()!.email.delivered}
-            </div>
-            <div style="font-size: 12px; color: #15803d;">Delivered</div>
-          </div>
-          
-          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; text-align: center;">
-            <div style="font-size: 24px; font-weight: bold; color: #dc2626;">
-              {stats()!.sms.failed + stats()!.email.failed}
-            </div>
-            <div style="font-size: 12px; color: #dc2626;">Failed</div>
-          </div>
-          
-          <div style="background: #fffbeb; border: 1px solid #fed7aa; border-radius: 6px; padding: 12px; text-align: center;">
-            <div style="font-size: 24px; font-weight: bold; color: #d97706;">
-              {stats()!.sms.pending + stats()!.email.pending}
-            </div>
-            <div style="font-size: 12px; color: #d97706;">Pending</div>
-          </div>
-        </div>
-      </Show>
-
-      {/* Logs List */}
+      {/* Loading State */}
       <Show when={loading()}>
         <div style="text-align: center; padding: 20px; color: #666;">
           Loading delivery logs...
         </div>
       </Show>
 
-      <Show when={!loading() && logs().length === 0}>
+      {/* No Data State */}
+      <Show when={!loading() && eventStats().length === 0}>
         <div style="text-align: center; padding: 40px; color: #666;">
           <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
           <div>No delivery logs found</div>
         </div>
       </Show>
 
-      <Show when={!loading() && logs().length > 0}>
-        <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
-          <For each={logs()}>
-            {(log) => (
-              <div style="border-bottom: 1px solid #f3f4f6; padding: 16px; hover:background-color: #f9fafb;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="display: flex; align-items: center;">{getTypeIcon(log.type)}</span>
-                    <span style="font-weight: 500; color: #374151;">{log.recipient}</span>
-                    <Show when={log.eventName}>
-                      <span style="background: #ddd6fe; color: #5b21b6; padding: 2px 6px; border-radius: 12px; font-size: 12px; font-weight: 500;">
-                        {log.eventName}
+      {/* Event Groups */}
+      <Show when={!loading() && eventStats().length > 0}>
+        <div style="space-y: 16px;">
+          <For each={eventStats()}>
+            {(eventStat) => (
+              <div style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; margin-bottom: 16px;">
+                {/* Event Header */}
+                <div 
+                  style="background: #f8fafc; padding: 16px; cursor: pointer; border-bottom: 1px solid #e5e7eb;"
+                  onClick={() => toggleEventExpansion(eventStat.eventName)}
+                >
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <h4 style="font-size: 16px; font-weight: 600; margin: 0; color: #1f2937;">
+                        {eventStat.eventName}
+                      </h4>
+                      <span style="background: #ddd6fe; color: #5b21b6; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;">
+                        {eventStat.total} total
                       </span>
-                    </Show>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 12px;">
-                    <Show when={log.imageCount}>
-                      <span style="color: #6b7280; font-size: 14px;">
-                        {log.imageCount} image{log.imageCount !== 1 ? 's' : ''}
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      {/* Stats Summary */}
+                      <div style="display: flex; gap: 8px; font-size: 12px;">
+                        <span style="color: #22c55e; font-weight: 500;">
+                          ✓ {eventStat.sms.delivered + eventStat.email.delivered}
+                        </span>
+                        <span style="color: #ef4444; font-weight: 500;">
+                          ✗ {eventStat.sms.failed + eventStat.email.failed}
+                        </span>
+                        <span style="color: #f59e0b; font-weight: 500;">
+                          ⏳ {eventStat.sms.pending + eventStat.email.pending}
+                        </span>
+                      </div>
+                      <span style="font-size: 18px; color: #6b7280;">
+                        {expandedEvents().has(eventStat.eventName) ? "▼" : "▶"}
                       </span>
-                    </Show>
-                    <span 
-                      style={`background: ${getStatusColor(log.status)}; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 500;`}
-                    >
-                      {log.status}
-                    </span>
+                    </div>
                   </div>
                 </div>
-                
-                <div style="display: flex; justify-content: between; align-items: center; font-size: 13px; color: #6b7280;">
-                  <div>
-                    {formatDate(log.createdAt)}
-                    <Show when={log.providerId}>
-                      <span style="margin-left: 8px;">ID: {log.providerId}</span>
-                    </Show>
-                  </div>
-                </div>
-                
-                <Show when={log.errorMessage}>
-                  <div style="margin-top: 8px; padding: 8px; background: #fef2f2; border: 1px solid #f87171; border-radius: 4px; color: #dc2626; font-size: 13px;">
-                    Error: {log.errorMessage}
+
+                {/* Event Details */}
+                <Show when={expandedEvents().has(eventStat.eventName)}>
+                  <div style="padding: 16px;">
+                    {/* Detailed Stats */}
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: bold; color: #16a34a;">
+                          {eventStat.sms.delivered + eventStat.email.delivered}
+                        </div>
+                        <div style="font-size: 11px; color: #15803d;">Delivered</div>
+                      </div>
+                      
+                      <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 8px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: bold; color: #dc2626;">
+                          {eventStat.sms.failed + eventStat.email.failed}
+                        </div>
+                        <div style="font-size: 11px; color: #dc2626;">Failed</div>
+                      </div>
+                      
+                      <div style="background: #fffbeb; border: 1px solid #fed7aa; border-radius: 6px; padding: 8px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: bold; color: #d97706;">
+                          {eventStat.sms.pending + eventStat.email.pending}
+                        </div>
+                        <div style="font-size: 11px; color: #d97706;">Pending</div>
+                      </div>
+
+                      <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: bold; color: #2563eb;">
+                          {eventStat.sms.total}
+                        </div>
+                        <div style="font-size: 11px; color: #2563eb;">SMS</div>
+                      </div>
+
+                      <div style="background: #f5f3ff; border: 1px solid #c4b5fd; border-radius: 6px; padding: 8px; text-align: center;">
+                        <div style="font-size: 18px; font-weight: bold; color: #7c3aed;">
+                          {eventStat.email.total}
+                        </div>
+                        <div style="font-size: 11px; color: #7c3aed;">Email</div>
+                      </div>
+                    </div>
+
+                    {/* Recent Logs */}
+                    <div>
+                      <h5 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: #374151;">
+                        Recent Deliveries
+                      </h5>
+                      <div style="border: 1px solid #f3f4f6; border-radius: 6px; overflow: hidden;">
+                        <For each={eventStat.recentLogs}>
+                          {(log) => (
+                            <div style="border-bottom: 1px solid #f3f4f6; padding: 12px; hover:background-color: #f9fafb;">
+                              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                  <span style="display: flex; align-items: center;">{getTypeIcon(log.type)}</span>
+                                  <span style="font-weight: 500; color: #374151; font-size: 14px;">{log.recipient}</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                  <Show when={log.imageCount}>
+                                    <span style="color: #6b7280; font-size: 12px;">
+                                      {log.imageCount} image{log.imageCount !== 1 ? 's' : ''}
+                                    </span>
+                                  </Show>
+                                  <span 
+                                    style={`background: ${getStatusColor(log.status)}; color: white; padding: 2px 6px; border-radius: 8px; font-size: 11px; font-weight: 500;`}
+                                  >
+                                    {log.status}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              <div style="font-size: 12px; color: #6b7280;">
+                                {formatDate(log.createdAt)}
+                                <Show when={log.providerId}>
+                                  <span style="margin-left: 8px;">ID: {log.providerId}</span>
+                                </Show>
+                              </div>
+                              
+                              <Show when={log.errorMessage}>
+                                <div style="margin-top: 6px; padding: 6px; background: #fef2f2; border: 1px solid #f87171; border-radius: 4px; color: #dc2626; font-size: 12px;">
+                                  Error: {log.errorMessage}
+                                </div>
+                              </Show>
+                            </div>
+                          )}
+                        </For>
+                      </div>
+                    </div>
                   </div>
                 </Show>
               </div>
