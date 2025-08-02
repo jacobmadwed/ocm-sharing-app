@@ -1,4 +1,4 @@
-import { Show, createSignal, createEffect, onCleanup, createMemo, Index, For, batch } from "solid-js";
+import { Show, createSignal, createEffect, onCleanup, createMemo, For } from "solid-js";
 import { readDir } from "@tauri-apps/plugin-fs";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { SmsModal } from "./SmsModal";
@@ -136,40 +136,28 @@ export function ImageGrid(props: ImageGridProps) {
       const currentAddOrder = new Map(addOrder());
       
       // Find new files first
-      const newFiles: Array<{ name: string; modifiedAt: Date | null }> = [];
+      const newFiles: string[] = [];
       
       for (const entry of imageEntries) {
         const fileName = entry.name || '';
         currentFiles.add(fileName);
         
-        // If this is a NEW file (not in our known files), collect it with mod time
+        // If this is a NEW file (not in our known files), collect it
         if (!currentKnownFiles.has(fileName)) {
-          newFiles.push({
-            name: fileName,
-            modifiedAt: entry.modifiedAt || null
-          });
+          newFiles.push(fileName);
         }
       }
       
-      // Sort new files by modification time (newest first) and assign order numbers
+      // Assign order numbers to new files
       if (newFiles.length > 0) {
         let nextOrderIndex = Math.max(...Array.from(currentAddOrder.values()), 0) + 1;
         
-        // Sort by modification time, newest first
-        newFiles.sort((a, b) => {
-          if (!a.modifiedAt && !b.modifiedAt) return 0;
-          if (!a.modifiedAt) return 1;
-          if (!b.modifiedAt) return -1;
-          return b.modifiedAt.getTime() - a.modifiedAt.getTime();
-        });
-        
         // Assign order numbers to new files (highest number = most recent)
         for (let i = newFiles.length - 1; i >= 0; i--) {
-          const file = newFiles[i];
-          currentAddOrder.set(file.name, nextOrderIndex);
+          const fileName = newFiles[i];
+          currentAddOrder.set(fileName, nextOrderIndex);
           if (!silent) {
-            const timeStr = file.modifiedAt ? file.modifiedAt.toLocaleTimeString() : 'unknown time';
-            console.log(`🆕 NEW FILE DETECTED: ${file.name} (modified: ${timeStr}) - assigned order ${nextOrderIndex} 🔥 SHOULD BE FIRST`);
+            console.log(`🆕 NEW FILE DETECTED: ${fileName} - assigned order ${nextOrderIndex} 🔥 SHOULD BE FIRST`);
           }
           nextOrderIndex++;
         }
@@ -184,13 +172,13 @@ export function ImageGrid(props: ImageGridProps) {
         // Create new image paths for the new files only
         const newImagePaths = newFiles
           .sort((a, b) => {
-            const orderA = currentAddOrder.get(a.name) || 0;
-            const orderB = currentAddOrder.get(b.name) || 0;
+            const orderA = currentAddOrder.get(a) || 0;
+            const orderB = currentAddOrder.get(b) || 0;
             return orderB - orderA; // Newest first
           })
-          .map(file => {
+          .map(fileName => {
             const separator = props.watchPath.endsWith('/') ? '' : '/';
-            return `${props.watchPath}${separator}${file.name}`;
+            return `${props.watchPath}${separator}${fileName}`;
           });
         
         // Add new images to the front efficiently 

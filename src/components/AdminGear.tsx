@@ -71,10 +71,10 @@ export function AdminGear(props: AdminGearProps) {
             onClick={() => setIsModalOpen(false)}
           />
           
-          {/* Modal Content - positioned below gear icon */}
-          <div style="position: fixed; top: 80px; right: 16px; background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0; width: 480px; max-height: 800px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 50; overflow: hidden; display: flex; flex-direction: column;">
+          {/* Modal Content - centered */}
+          <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0; width: 75vw; height: 60vh; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 50; overflow: hidden; display: flex; flex-direction: column;">
             {/* Header */}
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 0 24px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 20px 5% 0 5%; width: 90%;">
               <div>
                 <h2 style="font-size: 18px; font-weight: 600; color: #111827;">Admin Settings</h2>
                 <Show when={selectedEvent()}>
@@ -94,7 +94,7 @@ export function AdminGear(props: AdminGearProps) {
             </div>
             
             {/* Tabs */}
-            <div style="display: flex; border-bottom: 1px solid #e5e7eb; margin: 16px 24px 0 24px; flex-shrink: 0;">
+            <div style="display: flex; border-bottom: 1px solid #e5e7eb; margin: 16px 5% 0 5%; width: 90%; flex-shrink: 0;">
               <button
                 onClick={() => setActiveTab("folder")}
                 style={`padding: 12px 16px; border: none; background: none; cursor: pointer; font-size: 14px; font-weight: 500; border-bottom: 2px solid ${activeTab() === "folder" ? "#3b82f6" : "transparent"}; color: ${activeTab() === "folder" ? "#3b82f6" : "#6b7280"};`}
@@ -116,7 +116,7 @@ export function AdminGear(props: AdminGearProps) {
             </div>
             
             {/* Tab Content */}
-            <div style="padding: 16px 24px 120px 24px; overflow-y: auto; flex: 1; min-height: 0;">
+            <div style="padding: 16px 5% 120px 5%; width: 90%; overflow-y: auto; flex: 1; min-height: 0;">
               {activeTab() === "folder" && (
                 <div>
                   <p style="font-size: 14px; color: #6b7280; margin-bottom: 16px;">
