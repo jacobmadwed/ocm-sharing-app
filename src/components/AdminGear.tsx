@@ -1,6 +1,5 @@
 import { createSignal, Show } from "solid-js";
 import { open } from "@tauri-apps/plugin-dialog";
-import { cn } from "../lib/utils";
 import { EventSection } from "./EventSection";
 import { DeliveryLogs } from "./DeliveryLogs";
 import { useEvent } from "../lib/event-context";

@@ -8,6 +8,8 @@ interface Event {
   smsMessage: string;
   emailEnabled?: boolean;
   smsEnabled?: boolean;
+  disclaimerEnabled?: boolean;
+  disclaimerMessage?: string;
   watchPath?: string;
   createdAt: number;
   updatedAt: number;

@@ -17,6 +17,8 @@ export default defineSchema({
     smsMessage: v.string(),
     emailEnabled: v.optional(v.boolean()),
     smsEnabled: v.optional(v.boolean()),
+    disclaimerEnabled: v.optional(v.boolean()),
+    disclaimerMessage: v.optional(v.string()),
     watchPath: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),

@@ -8,6 +8,8 @@ interface EventFormProps {
   smsMessage: string;
   emailEnabled?: boolean;
   smsEnabled?: boolean;
+  disclaimerEnabled?: boolean;
+  disclaimerMessage?: string;
   watchPath?: string;
   onSave: (data: {
     eventName: string;
@@ -16,6 +18,8 @@ interface EventFormProps {
     smsMessage: string;
     emailEnabled?: boolean;
     smsEnabled?: boolean;
+    disclaimerEnabled?: boolean;
+    disclaimerMessage?: string;
     watchPath?: string;
   }) => void;
   isSaving?: boolean;
@@ -29,6 +33,8 @@ export function EventForm(props: EventFormProps) {
   const [emailEnabled, setEmailEnabled] = createSignal(props.emailEnabled ?? true);
   const [smsEnabled, setSmsEnabled] = createSignal(props.smsEnabled ?? true);
   const [watchPath, setWatchPath] = createSignal(props.watchPath || "");
+  const [disclaimerEnabled, setDisclaimerEnabled] = createSignal(props.disclaimerEnabled ?? false);
+  const [disclaimerMessage, setDisclaimerMessage] = createSignal(props.disclaimerMessage || "");
 
   // Update signals when props change
   (() => {
@@ -39,6 +45,8 @@ export function EventForm(props: EventFormProps) {
     setEmailEnabled(props.emailEnabled ?? true);
     setSmsEnabled(props.smsEnabled ?? true);
     setWatchPath(props.watchPath || "");
+    setDisclaimerEnabled(props.disclaimerEnabled ?? false);
+    setDisclaimerMessage(props.disclaimerMessage || "");
   })();
 
   const selectFolder = async () => {
@@ -71,6 +79,8 @@ export function EventForm(props: EventFormProps) {
       smsMessage: smsMessage(),
       emailEnabled: emailEnabled(),
       smsEnabled: smsEnabled(),
+      disclaimerEnabled: disclaimerEnabled(),
+      disclaimerMessage: disclaimerMessage(),
       watchPath: watchPath() || undefined,
     });
   };
@@ -162,6 +172,35 @@ export function EventForm(props: EventFormProps) {
           disabled={props.isSaving || !smsEnabled()}
           rows={3}
           style={`width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; resize: vertical; min-height: 60px; ${!smsEnabled() ? 'background: #f3f4f6; color: #9ca3af;' : ''}`}
+        />
+      </div>
+
+      {/* Disclaimer */}
+      <div style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input
+              type="checkbox"
+              checked={disclaimerEnabled()}
+              onChange={(e) => setDisclaimerEnabled(e.currentTarget.checked)}
+              disabled={props.isSaving}
+              style="width: 16px; height: 16px;"
+            />
+            <span style="font-size: 14px; font-weight: 500; color: #333;">
+              Enable Disclaimer
+            </span>
+          </label>
+        </div>
+        <label style="display: block; font-size: 14px; font-weight: 500; color: #333; margin-bottom: 4px;">
+          Disclaimer Message:
+        </label>
+        <textarea
+          placeholder="Enter disclaimer message..."
+          value={disclaimerMessage()}
+          onInput={(e) => setDisclaimerMessage(e.currentTarget.value)}
+          disabled={props.isSaving || !disclaimerEnabled()}
+          rows={3}
+          style={`width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; resize: vertical; min-height: 60px; ${!disclaimerEnabled() ? 'background: #f3f4f6; color: #9ca3af;' : ''}`}
         />
       </div>
 

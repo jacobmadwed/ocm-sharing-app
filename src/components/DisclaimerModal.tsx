@@ -1,94 +1,37 @@
-import { createSignal } from "solid-js";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { createSignal, Show } from "solid-js";
 
 interface DisclaimerModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  message: string;
   onAgree: () => void;
   onDisagree: () => void;
-  disclaimerText: string;
-  title?: string;
 }
 
 export function DisclaimerModal(props: DisclaimerModalProps) {
-  const [isProcessing, setIsProcessing] = createSignal(false);
-
-  const handleAgree = async () => {
-    setIsProcessing(true);
-    try {
-      await props.onAgree();
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleDisagree = () => {
-    props.onDisagree();
-    props.onClose();
-  };
-
   return (
-    <Dialog open={props.isOpen} onOpenChange={(open: boolean) => !open && props.onClose()}>
-      <DialogContent style="max-width: 500px; max-height: 80vh; overflow-y: auto;">
-        <DialogHeader>
-          <DialogTitle style="font-size: 18px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">
-            {props.title || "Disclaimer Agreement"}
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div style="margin-bottom: 24px;">
-          <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-            <div style="font-size: 14px; line-height: 1.5; color: #374151; white-space: pre-wrap;">
-              {props.disclaimerText}
-            </div>
-          </div>
-          
-          <div style="font-size: 13px; color: #6b7280; margin-bottom: 20px;">
-            Please read the disclaimer above carefully. You must agree to continue with sharing.
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+    <Show when={props.isOpen}>
+      <div
+        style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 60;"
+        onClick={props.onDisagree}
+      />
+      <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; width: 90%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); z-index: 70; display: flex; flex-direction: column; gap: 16px;">
+        <h2 style="font-size: 18px; font-weight: 600; color: #111827;">Disclaimer</h2>
+        <p style="font-size: 14px; color: #4b5563; line-height: 1.5;">{props.message}</p>
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px;">
           <button
-            onClick={handleDisagree}
-            disabled={isProcessing()}
-            style="padding: 10px 20px; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s;"
-            onMouseOver={(e) => {
-              if (!isProcessing()) {
-                e.currentTarget.style.background = '#e5e7eb';
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!isProcessing()) {
-                e.currentTarget.style.background = '#f3f4f6';
-              }
-            }}
+            onClick={props.onDisagree}
+            style="padding: 8px 16px; background: #e5e7eb; color: #374151; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;"
           >
             Disagree
           </button>
-          
           <button
-            onClick={handleAgree}
-            disabled={isProcessing()}
-            style={`padding: 10px 20px; background: ${isProcessing() ? '#9ca3af' : '#3b82f6'}; color: white; border: none; border-radius: 6px; cursor: ${isProcessing() ? 'not-allowed' : 'pointer'}; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 8px; transition: all 0.2s;`}
-            onMouseOver={(e) => {
-              if (!isProcessing()) {
-                e.currentTarget.style.background = '#2563eb';
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!isProcessing()) {
-                e.currentTarget.style.background = '#3b82f6';
-              }
-            }}
+            onClick={props.onAgree}
+            style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;"
           >
-            {isProcessing() && (
-              <div style="width: 14px; height: 14px; border: 2px solid white; border-top: 2px solid transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-            )}
-            {isProcessing() ? "Processing..." : "I Agree"}
+            Agree
           </button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </Show>
   );
 }

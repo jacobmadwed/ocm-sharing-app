@@ -12,6 +12,8 @@ interface Event {
   smsMessage: string;
   emailEnabled?: boolean;
   smsEnabled?: boolean;
+  disclaimerEnabled?: boolean;
+  disclaimerMessage?: string;
   watchPath?: string;
   createdAt: number;
   updatedAt: number;
@@ -54,6 +56,8 @@ export function EventSection() {
     smsMessage: string;
     emailEnabled?: boolean;
     smsEnabled?: boolean;
+    disclaimerEnabled?: boolean;
+    disclaimerMessage?: string;
     watchPath?: string;
   }) => {
     setIsSaving(true);
@@ -65,6 +69,8 @@ export function EventSection() {
         smsMessage: data.smsMessage,
         emailEnabled: data.emailEnabled ?? true,
         smsEnabled: data.smsEnabled ?? true,
+        disclaimerEnabled: data.disclaimerEnabled ?? false,
+        disclaimerMessage: data.disclaimerMessage || "",
         watchPath: data.watchPath,
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -82,6 +88,8 @@ export function EventSection() {
           smsMessage: data.smsMessage,
           emailEnabled: data.emailEnabled ?? true,
           smsEnabled: data.smsEnabled ?? true,
+          disclaimerEnabled: data.disclaimerEnabled ?? false,
+          disclaimerMessage: data.disclaimerMessage || "",
           watchPath: data.watchPath,
         });
       } else {
@@ -93,6 +101,8 @@ export function EventSection() {
           smsMessage: data.smsMessage,
           emailEnabled: data.emailEnabled ?? true,
           smsEnabled: data.smsEnabled ?? true,
+          disclaimerEnabled: data.disclaimerEnabled ?? false,
+          disclaimerMessage: data.disclaimerMessage || "",
           watchPath: data.watchPath,
         });
       }
@@ -216,6 +226,8 @@ export function EventSection() {
             smsMessage={isCreatingNew() ? "Here's your image!" : selectedEvent()?.smsMessage || ""}
             emailEnabled={isCreatingNew() ? true : selectedEvent()?.emailEnabled ?? true}
             smsEnabled={isCreatingNew() ? true : selectedEvent()?.smsEnabled ?? true}
+            disclaimerEnabled={isCreatingNew() ? false : selectedEvent()?.disclaimerEnabled ?? false}
+            disclaimerMessage={isCreatingNew() ? "" : selectedEvent()?.disclaimerMessage || ""}
             watchPath={isCreatingNew() ? "" : selectedEvent()?.watchPath || ""}
             onSave={handleSaveEvent}
             isSaving={isSaving()}

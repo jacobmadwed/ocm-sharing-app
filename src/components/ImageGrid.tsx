@@ -4,6 +4,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { SmsModal } from "./SmsModal";
 import { EmailModal } from "./EmailModal";
 import { NotificationBanner } from "./NotificationBanner";
+import { DisclaimerModal } from "./DisclaimerModal";
 
 import { sendMultipleImagesViaSms } from "../lib/sms-service";
 import { sendMultipleImagesViaEmail } from "../lib/email-service";
@@ -46,6 +47,8 @@ export function ImageGrid(props: ImageGridProps) {
 
   const [smsModalOpen, setSmsModalOpen] = createSignal(false);
   const [emailModalOpen, setEmailModalOpen] = createSignal(false);
+  const [disclaimerModalOpen, setDisclaimerModalOpen] = createSignal(false);
+  const [nextAction, setNextAction] = createSignal<"sms" | "email" | null>(null);
 
   const [selectedImages, setSelectedImages] = createSignal<string[]>([]);
   const [isMultiSelectMode, setIsMultiSelectMode] = createSignal(false);
@@ -340,6 +343,39 @@ export function ImageGrid(props: ImageGridProps) {
       });
   };
 
+  const handleSmsClick = () => {
+    if (selectedEvent()?.disclaimerEnabled) {
+      setNextAction("sms");
+      setDisclaimerModalOpen(true);
+    } else {
+      setSmsModalOpen(true);
+    }
+  };
+
+  const handleEmailClick = () => {
+    if (selectedEvent()?.disclaimerEnabled) {
+      setNextAction("email");
+      setDisclaimerModalOpen(true);
+    } else {
+      setEmailModalOpen(true);
+    }
+  };
+
+  const handleDisclaimerAgree = () => {
+    setDisclaimerModalOpen(false);
+    if (nextAction() === "sms") {
+      setSmsModalOpen(true);
+    } else if (nextAction() === "email") {
+      setEmailModalOpen(true);
+    }
+    setNextAction(null);
+  };
+
+  const handleDisclaimerDisagree = () => {
+    setDisclaimerModalOpen(false);
+    setNextAction(null);
+  };
+
   createEffect(() => {
     if (props.watchPath) {
       // Load persisted state first, then load images
@@ -462,29 +498,26 @@ export function ImageGrid(props: ImageGridProps) {
           {/* SMS Button */}
           <Show when={selectedEvent()?.smsEnabled ?? true}>
             <button
-              onClick={() => setSmsModalOpen(true)}
-              style="width: 60px; height: 60px; background: black; color: white; border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); transition: all 0.2s;"
+              onClick={handleSmsClick}
+              style="width: 60px; height: 60px; background: black; color: white; border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); transition: all 0.2s;"
               onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
               onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              title="Send via SMS"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M21 15.46l-5.27-.61-2.52 2.52c-2.83-1.44-5.15-3.75-6.59-6.59l2.53-2.52L8.54 3H3.03C2.45 13.18 10.82 21.55 21 20.97v-5.51z" fill="white"/>
-              </svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92V19a2 2 0 0 1-2.18 2A19.72 19.72 0 0 1 3 5.18 2 2 0 0 1 5 3h2.09a2 2 0 0 1 2 1.72c.13 1.05.37 2.07.72 3.06a2 2 0 0 1-.45 2.11l-.27.27a16 16 0 0 0 6.29 6.29l.27-.27a2 2 0 0 1 2.11-.45c.99.35 2.01.59 3.06.72A2 2 0 0 1 22 16.92z"></path></svg>
             </button>
           </Show>
           
           {/* Email Button */}
           <Show when={selectedEvent()?.emailEnabled ?? true}>
             <button
-              onClick={() => setEmailModalOpen(true)}
-              style="width: 60px; height: 60px; background: black; color: white; border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); transition: all 0.2s;"
+              onClick={handleEmailClick}
+              style="width: 60px; height: 60px; background: black; color: white; border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); transition: all 0.2s;"
               onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
               onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              title="Send via Email"
             >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <polyline points="22,6 12,13 2,6" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><polyline points="3 7 12 13 21 7" /></svg>
             </button>
           </Show>
           
@@ -531,6 +564,12 @@ export function ImageGrid(props: ImageGridProps) {
         />
       </Show>
 
+      <DisclaimerModal
+        isOpen={disclaimerModalOpen()}
+        message={selectedEvent()?.disclaimerMessage || ""}
+        onAgree={handleDisclaimerAgree}
+        onDisagree={handleDisclaimerDisagree}
+      />
     </div>
   );
 }
