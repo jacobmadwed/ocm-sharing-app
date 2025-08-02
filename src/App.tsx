@@ -6,6 +6,9 @@ import "./App.css";
 
 function AppContent() {
   const [selectedFolder, setSelectedFolder] = createSignal("");
+  const [fullscreen, setFullscreen] = createSignal(false);
+  const [clickCount, setClickCount] = createSignal(0);
+  const [clickTimeout, setClickTimeout] = createSignal<NodeJS.Timeout | null>(null);
   const { selectedEvent } = useEvent();
 
   // Watch for event changes and update folder automatically
@@ -33,8 +36,35 @@ function AppContent() {
     setSelectedFolder(path);
   };
 
+  const handleTripleClick = () => {
+    setClickCount(prev => {
+      const newCount = prev + 1;
+      
+      const currentTimeout = clickTimeout();
+      if (currentTimeout) {
+        clearTimeout(currentTimeout);
+      }
+      
+      if (newCount === 3) {
+        setFullscreen(!fullscreen());
+        setClickTimeout(null);
+        return 0;
+      }
+      
+      const newTimeout = setTimeout(() => setClickCount(0), 500);
+      setClickTimeout(newTimeout);
+      return newCount;
+    });
+  };
+
   return (
-    <div class="min-h-screen bg-background text-foreground">
+    <div class={`min-h-screen bg-background text-foreground ${fullscreen() ? 'fixed inset-0 z-50 w-screen h-screen overflow-hidden' : ''}`}>
+      <div 
+        class="absolute top-0 left-0 w-16 h-16 cursor-pointer z-50 select-none" 
+        onClick={handleTripleClick}
+        title="Triple click to toggle fullscreen"
+        style="user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;"
+      />
       <AdminGear onFolderSelected={handleFolderSelected} />
       <ImageGrid watchPath={selectedFolder()} />
     </div>

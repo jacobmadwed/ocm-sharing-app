@@ -430,7 +430,7 @@ export function ImageGrid(props: ImageGridProps) {
         </Show>
 
         <Show when={!loading() && images().length > 0}>
-          <div style="width: 80%; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; justify-items: center;">
+          <div style="width: 80%; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; justify-items: center; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;">
             <For each={images()}>
               {(imagePath) => {
                 const convertedSrc = convertFileSrc(imagePath);
@@ -449,14 +449,15 @@ export function ImageGrid(props: ImageGridProps) {
                 
                 return (
                   <div 
-                    style={`position: relative; width: 250px; height: 250px; border: ${isSelected() ? '4px solid #3b82f6' : '2px solid gray'}; border-radius: 8px; overflow: hidden; cursor: pointer;`}
+                    style={`position: relative; width: 250px; height: 250px; border: ${isSelected() ? '4px solid #3b82f6' : '2px solid gray'}; border-radius: 8px; overflow: hidden; cursor: pointer; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none;`}
                     onClick={() => handleImageClick(imagePath)}
                   >
                     <img
                       src={convertedSrc}
                       alt="Gallery image"
-                      style={`width: 100%; height: 100%; object-fit: contain; background: white; ${!canSelect() && !isSelected() ? 'opacity: 0.3;' : ''}`}
+                      style={`width: 100%; height: 100%; object-fit: contain; background: white; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; ${!canSelect() && !isSelected() ? 'opacity: 0.3;' : ''}`}
                       loading="lazy"
+                      draggable="false"
                     />
                     
                     <Show when={isSelected()}>
