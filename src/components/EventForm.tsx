@@ -1,4 +1,4 @@
-import { createSignal } from "solid-js";
+import { createSignal, createEffect } from "solid-js";
 import { open } from "@tauri-apps/plugin-dialog";
 
 interface EventFormProps {
@@ -10,6 +10,7 @@ interface EventFormProps {
   smsEnabled?: boolean;
   disclaimerEnabled?: boolean;
   disclaimerMessage?: string;
+  disclaimerMandatory?: boolean;
   watchPath?: string;
   onSave: (data: {
     eventName: string;
@@ -20,6 +21,7 @@ interface EventFormProps {
     smsEnabled?: boolean;
     disclaimerEnabled?: boolean;
     disclaimerMessage?: string;
+    disclaimerMandatory?: boolean;
     watchPath?: string;
   }) => void;
   isSaving?: boolean;
@@ -35,9 +37,10 @@ export function EventForm(props: EventFormProps) {
   const [watchPath, setWatchPath] = createSignal(props.watchPath || "");
   const [disclaimerEnabled, setDisclaimerEnabled] = createSignal(props.disclaimerEnabled ?? false);
   const [disclaimerMessage, setDisclaimerMessage] = createSignal(props.disclaimerMessage || "");
+  const [disclaimerMandatory, setDisclaimerMandatory] = createSignal(props.disclaimerMandatory ?? false);
 
   // Update signals when props change
-  (() => {
+  createEffect(() => {
     setEventName(props.eventName);
     setEmailSubject(props.emailSubject);
     setEmailBody(props.emailBody);
@@ -47,7 +50,8 @@ export function EventForm(props: EventFormProps) {
     setWatchPath(props.watchPath || "");
     setDisclaimerEnabled(props.disclaimerEnabled ?? false);
     setDisclaimerMessage(props.disclaimerMessage || "");
-  })();
+    setDisclaimerMandatory(props.disclaimerMandatory ?? false);
+  });
 
   const selectFolder = async () => {
     try {
@@ -81,6 +85,7 @@ export function EventForm(props: EventFormProps) {
       smsEnabled: smsEnabled(),
       disclaimerEnabled: disclaimerEnabled(),
       disclaimerMessage: disclaimerMessage(),
+      disclaimerMandatory: disclaimerMandatory(),
       watchPath: watchPath() || undefined,
     });
   };
@@ -202,6 +207,27 @@ export function EventForm(props: EventFormProps) {
           rows={3}
           style={`width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; resize: vertical; min-height: 60px; ${!disclaimerEnabled() ? 'background: #f3f4f6; color: #9ca3af;' : ''}`}
         />
+        
+        {/* Mandatory Disclaimer Toggle */}
+        {disclaimerEnabled() && (
+          <div style="margin-top: 12px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+              <input
+                type="checkbox"
+                checked={disclaimerMandatory()}
+                onChange={(e) => setDisclaimerMandatory(e.currentTarget.checked)}
+                disabled={props.isSaving}
+                style="width: 16px; height: 16px;"
+              />
+              <span style="font-size: 14px; font-weight: 500; color: #333;">
+                Make disclaimer mandatory
+              </span>
+            </label>
+            <div style="font-size: 12px; color: #6b7280; margin-top: 4px; margin-left: 24px;">
+              When enabled, users must agree to proceed (no disagree option)
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Watch Folder */}

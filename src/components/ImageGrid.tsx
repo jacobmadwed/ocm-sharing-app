@@ -567,6 +567,7 @@ export function ImageGrid(props: ImageGridProps) {
       <DisclaimerModal
         isOpen={disclaimerModalOpen()}
         message={selectedEvent()?.disclaimerMessage || ""}
+        mandatory={selectedEvent()?.disclaimerMandatory || false}
         onAgree={handleDisclaimerAgree}
         onDisagree={handleDisclaimerDisagree}
       />

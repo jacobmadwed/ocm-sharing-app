@@ -19,6 +19,7 @@ export default defineSchema({
     smsEnabled: v.optional(v.boolean()),
     disclaimerEnabled: v.optional(v.boolean()),
     disclaimerMessage: v.optional(v.string()),
+    disclaimerMandatory: v.optional(v.boolean()),
     watchPath: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),

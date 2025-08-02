@@ -10,6 +10,7 @@ interface Event {
   smsEnabled?: boolean;
   disclaimerEnabled?: boolean;
   disclaimerMessage?: string;
+  disclaimerMandatory?: boolean;
   watchPath?: string;
   createdAt: number;
   updatedAt: number;

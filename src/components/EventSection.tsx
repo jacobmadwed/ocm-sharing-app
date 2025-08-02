@@ -1,23 +1,11 @@
 import { createSignal, createEffect, Show, For } from "solid-js";
 import { EventForm } from "./EventForm";
 import { convex } from "../lib/convex";
+import { api } from "../../convex/_generated/api";
 import { saveEventToFile } from "../lib/event-storage";
 import { useEvent } from "../lib/event-context";
 
-interface Event {
-  _id?: string;
-  name: string;
-  emailSubject: string;
-  emailBody: string;
-  smsMessage: string;
-  emailEnabled?: boolean;
-  smsEnabled?: boolean;
-  disclaimerEnabled?: boolean;
-  disclaimerMessage?: string;
-  watchPath?: string;
-  createdAt: number;
-  updatedAt: number;
-}
+
 
 export function EventSection() {
   const [isCreatingNew, setIsCreatingNew] = createSignal(false);
@@ -30,7 +18,7 @@ export function EventSection() {
   const loadEvents = async () => {
     setIsLoading(true);
     try {
-      const eventsData = await convex.query("events:getEvents");
+      const eventsData = await convex.query(api.events.getEvents);
       setEvents(eventsData);
       
       // If no event is selected but events exist, select the first one
@@ -58,6 +46,7 @@ export function EventSection() {
     smsEnabled?: boolean;
     disclaimerEnabled?: boolean;
     disclaimerMessage?: string;
+    disclaimerMandatory?: boolean;
     watchPath?: string;
   }) => {
     setIsSaving(true);
@@ -69,9 +58,10 @@ export function EventSection() {
         smsMessage: data.smsMessage,
         emailEnabled: data.emailEnabled ?? true,
         smsEnabled: data.smsEnabled ?? true,
-        disclaimerEnabled: data.disclaimerEnabled ?? false,
-        disclaimerMessage: data.disclaimerMessage || "",
-        watchPath: data.watchPath,
+          disclaimerEnabled: data.disclaimerEnabled ?? false,
+          disclaimerMessage: data.disclaimerMessage || "",
+          disclaimerMandatory: data.disclaimerMandatory ?? false,
+          watchPath: data.watchPath,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -81,7 +71,7 @@ export function EventSection() {
       
       if (existingEvent) {
         // Update existing event
-        await convex.mutation("events:updateEvent", {
+        await convex.mutation(api.events.updateEvent, {
           name: data.eventName,
           emailSubject: data.emailSubject,
           emailBody: data.emailBody,
@@ -90,11 +80,12 @@ export function EventSection() {
           smsEnabled: data.smsEnabled ?? true,
           disclaimerEnabled: data.disclaimerEnabled ?? false,
           disclaimerMessage: data.disclaimerMessage || "",
+          disclaimerMandatory: data.disclaimerMandatory ?? false,
           watchPath: data.watchPath,
         });
       } else {
         // Create new event
-        await convex.mutation("events:createEvent", {
+        await convex.mutation(api.events.createEvent, {
           name: data.eventName,
           emailSubject: data.emailSubject,
           emailBody: data.emailBody,
@@ -103,6 +94,7 @@ export function EventSection() {
           smsEnabled: data.smsEnabled ?? true,
           disclaimerEnabled: data.disclaimerEnabled ?? false,
           disclaimerMessage: data.disclaimerMessage || "",
+          disclaimerMandatory: data.disclaimerMandatory ?? false,
           watchPath: data.watchPath,
         });
       }
@@ -138,7 +130,7 @@ export function EventSection() {
     if (!confirmed) return;
 
     try {
-      await convex.mutation("events:deleteEvent", { name: current.name });
+      await convex.mutation(api.events.deleteEvent, { name: current.name });
       await loadEvents();
       
       // Select first event if available, otherwise clear selection
@@ -228,6 +220,7 @@ export function EventSection() {
             smsEnabled={isCreatingNew() ? true : selectedEvent()?.smsEnabled ?? true}
             disclaimerEnabled={isCreatingNew() ? false : selectedEvent()?.disclaimerEnabled ?? false}
             disclaimerMessage={isCreatingNew() ? "" : selectedEvent()?.disclaimerMessage || ""}
+            disclaimerMandatory={isCreatingNew() ? false : selectedEvent()?.disclaimerMandatory ?? false}
             watchPath={isCreatingNew() ? "" : selectedEvent()?.watchPath || ""}
             onSave={handleSaveEvent}
             isSaving={isSaving()}

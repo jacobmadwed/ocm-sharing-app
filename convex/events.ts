@@ -11,9 +11,10 @@ export const createEvent = mutation({
     smsEnabled: v.optional(v.boolean()),
     disclaimerEnabled: v.optional(v.boolean()),
     disclaimerMessage: v.optional(v.string()),
+    disclaimerMandatory: v.optional(v.boolean()),
     watchPath: v.optional(v.string()),
   },
-  handler: async (ctx, { name, emailSubject, emailBody, smsMessage, emailEnabled = true, smsEnabled = true, disclaimerEnabled = false, disclaimerMessage = "", watchPath }) => {
+  handler: async (ctx, { name, emailSubject, emailBody, smsMessage, emailEnabled = true, smsEnabled = true, disclaimerEnabled = false, disclaimerMessage = "", disclaimerMandatory = false, watchPath }) => {
     const now = Date.now();
     
     // Check if event with this name already exists
@@ -35,6 +36,7 @@ export const createEvent = mutation({
       smsEnabled,
       disclaimerEnabled,
       disclaimerMessage,
+      disclaimerMandatory,
       watchPath,
       createdAt: now,
       updatedAt: now,
@@ -52,9 +54,10 @@ export const updateEvent = mutation({
     smsEnabled: v.optional(v.boolean()),
     disclaimerEnabled: v.optional(v.boolean()),
     disclaimerMessage: v.optional(v.string()),
+    disclaimerMandatory: v.optional(v.boolean()),
     watchPath: v.optional(v.string()),
   },
-  handler: async (ctx, { name, emailSubject, emailBody, smsMessage, emailEnabled = true, smsEnabled = true, disclaimerEnabled = false, disclaimerMessage = "", watchPath }) => {
+  handler: async (ctx, { name, emailSubject, emailBody, smsMessage, emailEnabled = true, smsEnabled = true, disclaimerEnabled = false, disclaimerMessage = "", disclaimerMandatory = false, watchPath }) => {
     const event = await ctx.db
       .query("events")
       .withIndex("by_name", (q) => q.eq("name", name))
@@ -72,6 +75,7 @@ export const updateEvent = mutation({
       smsEnabled,
       disclaimerEnabled,
       disclaimerMessage,
+      disclaimerMandatory,
       watchPath,
       updatedAt: Date.now(),
     });
@@ -102,7 +106,7 @@ export const removeLegacyDisclaimer = mutation({
       .withIndex("by_name", (q) => q.eq("name", name))
       .first();
     if (!event) throw new Error("Event not found");
-    await ctx.db.patch(event._id, { disclaimer: undefined });
+    // This function is for removing legacy fields that no longer exist in schema
     return true;
   },
 });
