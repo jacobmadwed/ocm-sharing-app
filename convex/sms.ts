@@ -124,8 +124,9 @@ export const sendBatchImageSms = action({
     filenames: v.array(v.string()),
     message: v.optional(v.string()),
     eventName: v.optional(v.string()),
+    disclaimerEnabled: v.optional(v.boolean()),
   },
-  handler: async (ctx, { phoneNumber, storageIds, filenames, message, eventName }) => {
+  handler: async (ctx, { phoneNumber, storageIds, filenames, message, eventName, disclaimerEnabled }) => {
     try {
       console.log(`Starting batch SMS send process for ${storageIds.length} images...`);
       
@@ -210,6 +211,7 @@ export const sendBatchImageSms = action({
             providerResponse: JSON.stringify(result),
             imageCount: 1,
             eventName: eventName,
+            disclaimerEnabled: disclaimerEnabled,
           });
           console.log(`Message ${messageNumber} SMS delivery logged successfully`);
         } catch (logError) {
@@ -242,10 +244,11 @@ export const sendBatchImageSms = action({
           errorMessage: error instanceof Error ? error.message : String(error),
           imageCount: storageIds.length,
           eventName: eventName,
+          disclaimerEnabled: disclaimerEnabled,
         });
         console.log("Batch SMS failure logged successfully");
       } catch (logError) {
-        console.error("Failed to log batch SMS failure:", logError);
+        console.error("Failed to log SMS failure:", logError);
       }
       
       throw error;

@@ -6,7 +6,8 @@ export async function sendMultipleImagesViaEmail(
   emailAddress: string, 
   subject: string, 
   message: string,
-  eventName?: string
+  eventName?: string,
+  disclaimerEnabled?: boolean
 ): Promise<void> {
   try {
     console.log(`📧 Preparing to send ${imagePaths.length} images via email to ${emailAddress}`);
@@ -52,6 +53,7 @@ export async function sendMultipleImagesViaEmail(
       storageIds,
       filenames,
       eventName,
+      disclaimerEnabled,
     });
     
     if (emailResult.success) {

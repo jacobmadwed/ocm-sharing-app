@@ -2,7 +2,7 @@ import { readFile } from '@tauri-apps/plugin-fs';
 import { convex } from './convex';
 import { uploadImageToConvex } from './upload-service';
 
-export async function sendMultipleImagesViaSms(imagePaths: string[], phoneNumber: string, message?: string, eventName?: string): Promise<void> {
+export async function sendMultipleImagesViaSms(imagePaths: string[], phoneNumber: string, message?: string, eventName?: string, disclaimerEnabled?: boolean): Promise<void> {
   try {
     console.log(`📱 Preparing to send ${imagePaths.length} images via SMS to ${phoneNumber}`);
     
@@ -46,6 +46,7 @@ export async function sendMultipleImagesViaSms(imagePaths: string[], phoneNumber
       filenames,
       message: message || "Here's your image!",
       eventName,
+      disclaimerEnabled,
     });
     
     if (smsResult.success) {

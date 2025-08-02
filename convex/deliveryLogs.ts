@@ -11,6 +11,7 @@ export const logSmsDelivery = mutation({
     errorMessage: v.optional(v.string()),
     imageCount: v.optional(v.number()),
     eventName: v.optional(v.string()),
+    disclaimerEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("deliveryLogs", {
@@ -22,6 +23,7 @@ export const logSmsDelivery = mutation({
       errorMessage: args.errorMessage,
       imageCount: args.imageCount,
       eventName: args.eventName,
+      disclaimerEnabled: args.disclaimerEnabled,
       createdAt: Date.now(),
     });
   },
@@ -37,6 +39,7 @@ export const logEmailDelivery = mutation({
     errorMessage: v.optional(v.string()),
     imageCount: v.optional(v.number()),
     eventName: v.optional(v.string()),
+    disclaimerEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("deliveryLogs", {
@@ -48,6 +51,7 @@ export const logEmailDelivery = mutation({
       errorMessage: args.errorMessage,
       imageCount: args.imageCount,
       eventName: args.eventName,
+      disclaimerEnabled: args.disclaimerEnabled,
       createdAt: Date.now(),
     });
   },

@@ -93,11 +93,7 @@ export const sendImageEmail = action({
             type: "text/html",
             value: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #333;">Image from One Chance Media</h2>
                 <p style="color: #666; line-height: 1.6;">${message}</p>
-                <p style="color: #999; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
-                  This email was sent from One Chance Media sharing system.
-                </p>
               </div>
             `
           }
@@ -199,8 +195,9 @@ export const sendBatchImageEmail = action({
     storageIds: v.array(v.string()),
     filenames: v.array(v.string()),
     eventName: v.optional(v.string()),
+    disclaimerEnabled: v.optional(v.boolean()),
   },
-  handler: async (ctx, { toEmail, subject, message, storageIds, filenames, eventName }) => {
+  handler: async (ctx, { toEmail, subject, message, storageIds, filenames, eventName, disclaimerEnabled }) => {
     try {
       console.log(`Starting batch email send process for ${storageIds.length} images...`);
       
@@ -296,14 +293,7 @@ export const sendBatchImageEmail = action({
             type: "text/html",
             value: `
               <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #333;">Images from One Chance Media</h2>
                 <p style="color: #666; line-height: 1.6;">${message}</p>
-                <p style="color: #666; font-size: 14px; margin-top: 20px;">
-                  <strong>Attached files:</strong> ${filenames.join(', ')}
-                </p>
-                <p style="color: #999; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
-                  This email was sent from One Chance Media sharing system.
-                </p>
               </div>
             `
           }
@@ -345,6 +335,7 @@ export const sendBatchImageEmail = action({
           status: "accepted", // SendGrid uses "accepted" for successful submissions
           imageCount: attachments.length,
           eventName: eventName,
+          disclaimerEnabled: disclaimerEnabled,
         });
         console.log("Batch email delivery logged successfully");
       } catch (logError) {
@@ -369,6 +360,7 @@ export const sendBatchImageEmail = action({
           errorMessage: error instanceof Error ? error.message : String(error),
           imageCount: storageIds.length,
           eventName: eventName,
+          disclaimerEnabled: disclaimerEnabled,
         });
         console.log("Batch email failure logged successfully");
       } catch (logError) {

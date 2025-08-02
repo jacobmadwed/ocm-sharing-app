@@ -307,7 +307,7 @@ export function ImageGrid(props: ImageGridProps) {
     });
     
     // Send in background
-    sendMultipleImagesViaSms(imagePaths, phoneNumber, message, selectedEvent()?.name)
+    sendMultipleImagesViaSms(imagePaths, phoneNumber, message, selectedEvent()?.name, selectedEvent()?.disclaimerEnabled)
       .then(() => {
         console.log("✅ Background SMS batch sent successfully!");
       })
@@ -333,7 +333,7 @@ export function ImageGrid(props: ImageGridProps) {
     });
     
     // Send in background
-    sendMultipleImagesViaEmail(imagePaths, emailAddress, subject, message, selectedEvent()?.name)
+    sendMultipleImagesViaEmail(imagePaths, emailAddress, subject, message, selectedEvent()?.name, selectedEvent()?.disclaimerEnabled)
       .then(() => {
         console.log("✅ Background email batch sent successfully!");
       })

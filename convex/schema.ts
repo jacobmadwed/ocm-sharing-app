@@ -33,6 +33,7 @@ export default defineSchema({
     errorMessage: v.optional(v.string()), // error details if failed
     imageCount: v.optional(v.number()), // number of images sent
     eventName: v.optional(v.string()), // which event triggered this
+    disclaimerEnabled: v.optional(v.boolean()), // whether disclaimer was enabled at send time
     createdAt: v.number(),
   })
     .index("by_type", ["type"])
