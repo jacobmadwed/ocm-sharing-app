@@ -1,4 +1,5 @@
 import { createContext, useContext, createSignal, createEffect, JSX } from "solid-js";
+import { SurveyQuestion } from "./survey-types";
 
 interface Event {
   _id?: string;
@@ -11,6 +12,8 @@ interface Event {
   disclaimerEnabled?: boolean;
   disclaimerMessage?: string;
   disclaimerMandatory?: boolean;
+  surveyEnabled?: boolean;
+  surveyQuestions?: SurveyQuestion[];
   watchPath?: string;
   createdAt: number;
   updatedAt: number;

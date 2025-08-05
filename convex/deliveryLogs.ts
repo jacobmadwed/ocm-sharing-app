@@ -12,6 +12,10 @@ export const logSmsDelivery = mutation({
     imageCount: v.optional(v.number()),
     eventName: v.optional(v.string()),
     disclaimerEnabled: v.optional(v.boolean()),
+    surveyResponses: v.optional(v.array(v.object({
+      questionId: v.string(),
+      answer: v.string(),
+    }))),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("deliveryLogs", {
@@ -24,6 +28,7 @@ export const logSmsDelivery = mutation({
       imageCount: args.imageCount,
       eventName: args.eventName,
       disclaimerEnabled: args.disclaimerEnabled,
+      surveyResponses: args.surveyResponses,
       createdAt: Date.now(),
     });
   },
@@ -40,6 +45,10 @@ export const logEmailDelivery = mutation({
     imageCount: v.optional(v.number()),
     eventName: v.optional(v.string()),
     disclaimerEnabled: v.optional(v.boolean()),
+    surveyResponses: v.optional(v.array(v.object({
+      questionId: v.string(),
+      answer: v.string(),
+    }))),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("deliveryLogs", {
@@ -52,6 +61,7 @@ export const logEmailDelivery = mutation({
       imageCount: args.imageCount,
       eventName: args.eventName,
       disclaimerEnabled: args.disclaimerEnabled,
+      surveyResponses: args.surveyResponses,
       createdAt: Date.now(),
     });
   },
@@ -328,5 +338,25 @@ export const getAcceptedEmails = query({
         q.lt(q.field("createdAt"), before)
       ))
       .collect();
+  },
+});
+
+// Store survey responses separately
+export const storeSurveyResponses = mutation({
+  args: {
+    eventName: v.string(),
+    recipient: v.optional(v.string()),
+    responses: v.array(v.object({
+      questionId: v.string(),
+      answer: v.string(),
+    })),
+  },
+  handler: async (ctx, { eventName, recipient, responses }) => {
+    return await ctx.db.insert("surveyResponses", {
+      eventName,
+      recipient,
+      responses,
+      completedAt: Date.now(),
+    });
   },
 });

@@ -11,6 +11,7 @@ export function EventSection() {
   const [isCreatingNew, setIsCreatingNew] = createSignal(false);
   const [isSaving, setIsSaving] = createSignal(false);
   const [isLoading, setIsLoading] = createSignal(false);
+  const [isCheckingCloud, setIsCheckingCloud] = createSignal(false);
   
   const { selectedEvent, setSelectedEvent, events, setEvents } = useEvent();
 
@@ -21,8 +22,20 @@ export function EventSection() {
       const eventsData = await convex.query(api.events.getEvents);
       setEvents(eventsData);
       
-      // If no event is selected but events exist, select the first one
-      if (!selectedEvent() && eventsData.length > 0) {
+      // Preserve local watchPath for currently selected event
+      const currentSelected = selectedEvent();
+      if (currentSelected) {
+        const updatedEvent = eventsData.find(e => e.name === currentSelected.name);
+        if (updatedEvent) {
+          // Merge cloud data with local watchPath
+          const mergedEvent = {
+            ...updatedEvent,
+            watchPath: currentSelected.watchPath // Keep local path
+          };
+          setSelectedEvent(mergedEvent);
+        }
+      } else if (eventsData.length > 0) {
+        // If no event is selected but events exist, select the first one
         setSelectedEvent(eventsData[0]);
       }
     } catch (error) {
@@ -47,6 +60,8 @@ export function EventSection() {
     disclaimerEnabled?: boolean;
     disclaimerMessage?: string;
     disclaimerMandatory?: boolean;
+    surveyEnabled?: boolean;
+    surveyQuestions?: any[];
     watchPath?: string;
   }) => {
     setIsSaving(true);
@@ -58,10 +73,12 @@ export function EventSection() {
         smsMessage: data.smsMessage,
         emailEnabled: data.emailEnabled ?? true,
         smsEnabled: data.smsEnabled ?? true,
-          disclaimerEnabled: data.disclaimerEnabled ?? false,
-          disclaimerMessage: data.disclaimerMessage || "",
-          disclaimerMandatory: data.disclaimerMandatory ?? false,
-          watchPath: data.watchPath,
+        disclaimerEnabled: data.disclaimerEnabled ?? false,
+        disclaimerMessage: data.disclaimerMessage || "",
+        disclaimerMandatory: data.disclaimerMandatory ?? false,
+        surveyEnabled: data.surveyEnabled ?? false,
+        surveyQuestions: data.surveyQuestions || [],
+        watchPath: data.watchPath,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -70,7 +87,7 @@ export function EventSection() {
       const existingEvent = events().find(e => e.name === data.eventName);
       
       if (existingEvent) {
-        // Update existing event
+        // Update existing event (exclude watchPath from cloud sync)
         await convex.mutation(api.events.updateEvent, {
           name: data.eventName,
           emailSubject: data.emailSubject,
@@ -81,10 +98,12 @@ export function EventSection() {
           disclaimerEnabled: data.disclaimerEnabled ?? false,
           disclaimerMessage: data.disclaimerMessage || "",
           disclaimerMandatory: data.disclaimerMandatory ?? false,
-          watchPath: data.watchPath,
+          surveyEnabled: data.surveyEnabled ?? false,
+          surveyQuestions: data.surveyQuestions || [],
+          // watchPath: data.watchPath, // Excluded - keep local only
         });
       } else {
-        // Create new event
+        // Create new event (exclude watchPath from cloud sync)
         await convex.mutation(api.events.createEvent, {
           name: data.eventName,
           emailSubject: data.emailSubject,
@@ -95,7 +114,9 @@ export function EventSection() {
           disclaimerEnabled: data.disclaimerEnabled ?? false,
           disclaimerMessage: data.disclaimerMessage || "",
           disclaimerMandatory: data.disclaimerMandatory ?? false,
-          watchPath: data.watchPath,
+          surveyEnabled: data.surveyEnabled ?? false,
+          surveyQuestions: data.surveyQuestions || [],
+          // watchPath: data.watchPath, // Excluded - keep local only
         });
       }
 
@@ -110,7 +131,12 @@ export function EventSection() {
       await loadEvents();
       const updatedEvent = events().find(e => e.name === data.eventName);
       if (updatedEvent) {
-        setSelectedEvent(updatedEvent);
+        // Preserve the local watchPath that was just saved
+        const eventWithLocalPath = {
+          ...updatedEvent,
+          watchPath: data.watchPath
+        };
+        setSelectedEvent(eventWithLocalPath);
       }
       
       setIsCreatingNew(false);
@@ -156,17 +182,72 @@ export function EventSection() {
     }
   };
 
+  const handleCheckCloud = async () => {
+    setIsCheckingCloud(true);
+    try {
+      console.log('🔄 Checking cloud for latest events...');
+      
+      // Fetch fresh events from Convex
+      const eventsData = await convex.query(api.events.getEvents);
+      console.log('📦 Fetched events from cloud:', eventsData);
+      
+      setEvents(eventsData);
+      
+      // Update selected event if it exists in the new data
+      const currentSelected = selectedEvent();
+      if (currentSelected) {
+        const updatedEvent = eventsData.find(e => e.name === currentSelected.name);
+        if (updatedEvent) {
+          // Preserve local watchPath, sync everything else from cloud
+          const syncedEvent = {
+            ...updatedEvent,
+            watchPath: currentSelected.watchPath // Keep local path
+          };
+          console.log('🔄 Updating selected event with cloud data (preserving local path):', syncedEvent);
+          setSelectedEvent(syncedEvent);
+        } else {
+          console.log('⚠️ Selected event no longer exists in cloud, clearing selection');
+          setSelectedEvent(null);
+        }
+      } else if (eventsData.length > 0) {
+        // If no event is selected but events exist, select the first one
+        // For new selections, preserve any existing local path
+        const firstEvent = eventsData[0];
+        console.log('📌 No event selected, selecting first available:', firstEvent);
+        setSelectedEvent(firstEvent);
+      }
+      
+      console.log('✅ Successfully synced events from cloud');
+      alert(`✅ Synced ${eventsData.length} events from cloud`);
+    } catch (error) {
+      console.error('❌ Failed to check cloud:', error);
+      alert('Failed to sync from cloud. Please check your internet connection.');
+    } finally {
+      setIsCheckingCloud(false);
+    }
+  };
+
   return (
     <div>
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
         <h3 style="font-size: 16px; font-weight: 600; margin: 0; color: #333;">Event Settings</h3>
-        <button
-          onClick={startCreatingNew}
-          disabled={isLoading() || isSaving()}
-          style="padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;"
-        >
-          + New Event
-        </button>
+        <div style="display: flex; gap: 8px;">
+          <button
+            onClick={handleCheckCloud}
+            disabled={isLoading() || isSaving() || isCheckingCloud()}
+            style={`padding: 6px 12px; background: ${isCheckingCloud() ? '#9ca3af' : '#3b82f6'}; color: white; border: none; border-radius: 4px; cursor: ${isCheckingCloud() ? 'not-allowed' : 'pointer'}; font-size: 12px; font-weight: 500;`}
+            title="Sync latest events from cloud"
+          >
+            {isCheckingCloud() ? '🔄 Checking...' : '☁️ Check Cloud'}
+          </button>
+          <button
+            onClick={startCreatingNew}
+            disabled={isLoading() || isSaving() || isCheckingCloud()}
+            style="padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500;"
+          >
+            + New Event
+          </button>
+        </div>
       </div>
 
       <Show when={isLoading()}>
@@ -221,6 +302,8 @@ export function EventSection() {
             disclaimerEnabled={isCreatingNew() ? false : selectedEvent()?.disclaimerEnabled ?? false}
             disclaimerMessage={isCreatingNew() ? "" : selectedEvent()?.disclaimerMessage || ""}
             disclaimerMandatory={isCreatingNew() ? false : selectedEvent()?.disclaimerMandatory ?? false}
+            surveyEnabled={isCreatingNew() ? false : selectedEvent()?.surveyEnabled ?? false}
+            surveyQuestions={isCreatingNew() ? [] : selectedEvent()?.surveyQuestions || []}
             watchPath={isCreatingNew() ? "" : selectedEvent()?.watchPath || ""}
             onSave={handleSaveEvent}
             isSaving={isSaving()}

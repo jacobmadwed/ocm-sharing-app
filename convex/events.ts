@@ -12,9 +12,20 @@ export const createEvent = mutation({
     disclaimerEnabled: v.optional(v.boolean()),
     disclaimerMessage: v.optional(v.string()),
     disclaimerMandatory: v.optional(v.boolean()),
+    surveyEnabled: v.optional(v.boolean()),
+    surveyQuestions: v.optional(v.array(v.object({
+      id: v.string(),
+      type: v.union(v.literal("dropdown"), v.literal("text")),
+      question: v.string(),
+      required: v.boolean(),
+      options: v.optional(v.array(v.string())),
+      placeholder: v.optional(v.string()),
+      maxLength: v.optional(v.number()),
+      defaultValue: v.optional(v.string()),
+    }))),
     watchPath: v.optional(v.string()),
   },
-  handler: async (ctx, { name, emailSubject, emailBody, smsMessage, emailEnabled = true, smsEnabled = true, disclaimerEnabled = false, disclaimerMessage = "", disclaimerMandatory = false, watchPath }) => {
+  handler: async (ctx, { name, emailSubject, emailBody, smsMessage, emailEnabled = true, smsEnabled = true, disclaimerEnabled = false, disclaimerMessage = "", disclaimerMandatory = false, surveyEnabled = false, surveyQuestions = [], watchPath }) => {
     const now = Date.now();
     
     // Check if event with this name already exists
@@ -37,6 +48,8 @@ export const createEvent = mutation({
       disclaimerEnabled,
       disclaimerMessage,
       disclaimerMandatory,
+      surveyEnabled,
+      surveyQuestions,
       watchPath,
       createdAt: now,
       updatedAt: now,
@@ -55,9 +68,20 @@ export const updateEvent = mutation({
     disclaimerEnabled: v.optional(v.boolean()),
     disclaimerMessage: v.optional(v.string()),
     disclaimerMandatory: v.optional(v.boolean()),
+    surveyEnabled: v.optional(v.boolean()),
+    surveyQuestions: v.optional(v.array(v.object({
+      id: v.string(),
+      type: v.union(v.literal("dropdown"), v.literal("text")),
+      question: v.string(),
+      required: v.boolean(),
+      options: v.optional(v.array(v.string())),
+      placeholder: v.optional(v.string()),
+      maxLength: v.optional(v.number()),
+      defaultValue: v.optional(v.string()),
+    }))),
     watchPath: v.optional(v.string()),
   },
-  handler: async (ctx, { name, emailSubject, emailBody, smsMessage, emailEnabled = true, smsEnabled = true, disclaimerEnabled = false, disclaimerMessage = "", disclaimerMandatory = false, watchPath }) => {
+  handler: async (ctx, { name, emailSubject, emailBody, smsMessage, emailEnabled = true, smsEnabled = true, disclaimerEnabled = false, disclaimerMessage = "", disclaimerMandatory = false, surveyEnabled = false, surveyQuestions = [], watchPath }) => {
     const event = await ctx.db
       .query("events")
       .withIndex("by_name", (q) => q.eq("name", name))
@@ -76,6 +100,8 @@ export const updateEvent = mutation({
       disclaimerEnabled,
       disclaimerMessage,
       disclaimerMandatory,
+      surveyEnabled,
+      surveyQuestions,
       watchPath,
       updatedAt: Date.now(),
     });

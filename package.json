@@ -1,6 +1,6 @@
 {
   "name": "ocm_sharing-app",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "",
   "type": "module",
   "scripts": {
@@ -19,7 +19,11 @@
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.3.2",
     "@tauri-apps/plugin-fs": "^2.4.1",
+    "@tauri-apps/plugin-http": "^2.5.1",
     "@tauri-apps/plugin-opener": "^2",
+    "@tauri-apps/plugin-process": "^2.3.0",
+    "@tauri-apps/plugin-shell": "^2.3.0",
+    "@tauri-apps/plugin-updater": "^2.9.0",
     "convex": "^1.25.4",
     "solid-js": "^1.9.3",
     "twilio": "^5.8.0",

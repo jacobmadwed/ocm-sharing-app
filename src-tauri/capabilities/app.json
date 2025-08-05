@@ -12,6 +12,13 @@
       "allow": [{ "path": "$APPDATA/*" }]
     },
     {
+      "identifier": "fs:allow-write-file",
+      "allow": [
+        { "path": "$TEMP/*" },
+        { "path": "$TMP/*" }
+      ]
+    },
+    {
       "identifier": "fs:allow-read-text-file", 
       "allow": [{ "path": "$APPDATA/*" }]
     },
@@ -52,6 +59,30 @@
     },
     "dialog:allow-open",
     "dialog:default",
-    "core:path:default"
+    "core:path:default",
+    "fs:allow-temp-write",
+    "process:allow-restart",
+    "process:allow-exit",
+    "shell:allow-execute",
+    "shell:allow-open",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "powershell",
+          "cmd": "powershell",
+          "args": ["-Command", { "validator": "Start-Process -FilePath \".*\"" }]
+        }
+      ]
+    },
+    "http:default",
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        {
+          "url": "https://api.github.com/repos/jacobmadwed/ocm-sharing-app/*"
+        }
+      ]
+    }
   ]
 }

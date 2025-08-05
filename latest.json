@@ -1,0 +1,11 @@
+{
+  "version": "v0.1.3",
+  "notes": "Darker background color for better visibility",
+  "pub_date": "2025-08-04T18:00:00Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTanJGVlc3SkpwVEtzbG1xbzhKcWFqUzJnbjI4aThVWEF4cWR0ejRaTnJDN1BQNzVmUllWcFMzT3BrL0oxZ2NmSzhtaUNDa2hveW11SGNoZC9HUndUTzh2amhGc3A5VlFNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzU0MzI5NjU3CWZpbGU6b2NtX3NoYXJpbmctYXBwXzAuMS4zX3g2NC1zZXR1cC5leGUKUXpFbjl3cXRPWmNlM2hQZTNScmJWb05CVENGdmwvZ25zeit6ckhpeGlCRmh4OW1Ta2NwVkx1a2JnZUpiclplVHVPSVptL2l1Q0tkMHBhU2tiSjFlRGc9PQo=",
+      "url": "https://github.com/jacobmadwed/ocm-sharing-app/releases/download/0.1.3/ocm_sharing-app_0.1.3_x64-setup.nsis.zip"
+    }
+  }
+}

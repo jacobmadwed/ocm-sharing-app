@@ -5,10 +5,12 @@ import { SmsModal } from "./SmsModal";
 import { EmailModal } from "./EmailModal";
 import { NotificationBanner } from "./NotificationBanner";
 import { DisclaimerModal } from "./DisclaimerModal";
+import { SurveyModal } from "./SurveyModal";
 
 import { sendMultipleImagesViaSms } from "../lib/sms-service";
 import { sendMultipleImagesViaEmail } from "../lib/email-service";
 import { useEvent } from "../lib/event-context";
+import { SurveyResponse } from "../lib/survey-types";
 
 interface ImageGridProps {
   watchPath: string;
@@ -48,7 +50,9 @@ export function ImageGrid(props: ImageGridProps) {
   const [smsModalOpen, setSmsModalOpen] = createSignal(false);
   const [emailModalOpen, setEmailModalOpen] = createSignal(false);
   const [disclaimerModalOpen, setDisclaimerModalOpen] = createSignal(false);
+  const [surveyModalOpen, setSurveyModalOpen] = createSignal(false);
   const [nextAction, setNextAction] = createSignal<"sms" | "email" | null>(null);
+  const [surveyResponses, setSurveyResponses] = createSignal<SurveyResponse[]>([]);
 
   const [selectedImages, setSelectedImages] = createSignal<string[]>([]);
   const [isMultiSelectMode, setIsMultiSelectMode] = createSignal(false);
@@ -307,7 +311,10 @@ export function ImageGrid(props: ImageGridProps) {
     });
     
     // Send in background
-    sendMultipleImagesViaSms(imagePaths, phoneNumber, message, selectedEvent()?.name, selectedEvent()?.disclaimerEnabled)
+    console.log('📱 About to send SMS with survey responses:', surveyResponses());
+    console.log('📱 Event name being sent:', selectedEvent()?.name);
+    console.log('📱 Disclaimer enabled:', selectedEvent()?.disclaimerEnabled);
+    sendMultipleImagesViaSms(imagePaths, phoneNumber, message, selectedEvent()?.name, selectedEvent()?.disclaimerEnabled, surveyResponses())
       .then(() => {
         console.log("✅ Background SMS batch sent successfully!");
       })
@@ -333,7 +340,10 @@ export function ImageGrid(props: ImageGridProps) {
     });
     
     // Send in background
-    sendMultipleImagesViaEmail(imagePaths, emailAddress, subject, message, selectedEvent()?.name, selectedEvent()?.disclaimerEnabled)
+    console.log('📧 About to send Email with survey responses:', surveyResponses());
+    console.log('📧 Event name being sent:', selectedEvent()?.name);
+    console.log('📧 Disclaimer enabled:', selectedEvent()?.disclaimerEnabled);
+    sendMultipleImagesViaEmail(imagePaths, emailAddress, subject, message, selectedEvent()?.name, selectedEvent()?.disclaimerEnabled, surveyResponses())
       .then(() => {
         console.log("✅ Background email batch sent successfully!");
       })
@@ -347,6 +357,9 @@ export function ImageGrid(props: ImageGridProps) {
     if (selectedEvent()?.disclaimerEnabled) {
       setNextAction("sms");
       setDisclaimerModalOpen(true);
+    } else if (selectedEvent()?.surveyEnabled) {
+      setNextAction("sms");
+      setSurveyModalOpen(true);
     } else {
       setSmsModalOpen(true);
     }
@@ -356,6 +369,9 @@ export function ImageGrid(props: ImageGridProps) {
     if (selectedEvent()?.disclaimerEnabled) {
       setNextAction("email");
       setDisclaimerModalOpen(true);
+    } else if (selectedEvent()?.surveyEnabled) {
+      setNextAction("email");
+      setSurveyModalOpen(true);
     } else {
       setEmailModalOpen(true);
     }
@@ -363,6 +379,31 @@ export function ImageGrid(props: ImageGridProps) {
 
   const handleDisclaimerAgree = () => {
     setDisclaimerModalOpen(false);
+    // After disclaimer, check if survey is enabled
+    if (selectedEvent()?.surveyEnabled) {
+      setSurveyModalOpen(true);
+    } else {
+      // No survey, go straight to sharing
+      if (nextAction() === "sms") {
+        setSmsModalOpen(true);
+      } else if (nextAction() === "email") {
+        setEmailModalOpen(true);
+      }
+      setNextAction(null);
+    }
+  };
+
+  const handleDisclaimerDisagree = () => {
+    setDisclaimerModalOpen(false);
+    setNextAction(null);
+  };
+
+  const handleSurveyComplete = (responses: SurveyResponse[]) => {
+    console.log('📋 Survey completed with responses:', responses);
+    setSurveyResponses(responses);
+    setSurveyModalOpen(false);
+    
+    // After survey completion, proceed to sharing
     if (nextAction() === "sms") {
       setSmsModalOpen(true);
     } else if (nextAction() === "email") {
@@ -371,8 +412,8 @@ export function ImageGrid(props: ImageGridProps) {
     setNextAction(null);
   };
 
-  const handleDisclaimerDisagree = () => {
-    setDisclaimerModalOpen(false);
+  const handleSurveyCancel = () => {
+    setSurveyModalOpen(false);
     setNextAction(null);
   };
 
@@ -571,6 +612,14 @@ export function ImageGrid(props: ImageGridProps) {
         mandatory={selectedEvent()?.disclaimerMandatory || false}
         onAgree={handleDisclaimerAgree}
         onDisagree={handleDisclaimerDisagree}
+      />
+
+      {/* Survey Modal */}
+      <SurveyModal
+        isOpen={surveyModalOpen()}
+        questions={selectedEvent()?.surveyQuestions || []}
+        onComplete={handleSurveyComplete}
+        onCancel={handleSurveyCancel}
       />
     </div>
   );

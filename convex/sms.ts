@@ -125,10 +125,17 @@ export const sendBatchImageSms = action({
     message: v.optional(v.string()),
     eventName: v.optional(v.string()),
     disclaimerEnabled: v.optional(v.boolean()),
+    surveyResponses: v.optional(v.array(v.object({
+      questionId: v.string(),
+      answer: v.string(),
+    }))),
   },
-  handler: async (ctx, { phoneNumber, storageIds, filenames, message, eventName, disclaimerEnabled }) => {
+  handler: async (ctx, { phoneNumber, storageIds, filenames, message, eventName, disclaimerEnabled, surveyResponses }) => {
     try {
       console.log(`Starting batch SMS send process for ${storageIds.length} images...`);
+      console.log(`Survey responses received in Convex SMS action:`, surveyResponses);
+      console.log(`Event name received in Convex SMS action:`, eventName);
+      console.log(`Disclaimer enabled received in Convex SMS action:`, disclaimerEnabled);
       
       // Get all file URLs from storage
       const fileUrls: string[] = [];
@@ -212,8 +219,23 @@ export const sendBatchImageSms = action({
             imageCount: 1,
             eventName: eventName,
             disclaimerEnabled: disclaimerEnabled,
+            surveyResponses: surveyResponses,
           });
           console.log(`Message ${messageNumber} SMS delivery logged successfully`);
+          
+          // Store survey responses separately if provided
+          if (surveyResponses && surveyResponses.length > 0 && eventName) {
+            try {
+              await ctx.runMutation(internal.deliveryLogs.storeSurveyResponses, {
+                eventName: eventName,
+                recipient: phoneNumber,
+                responses: surveyResponses,
+              });
+              console.log(`Survey responses stored for message ${messageNumber}`);
+            } catch (surveyError) {
+              console.error(`Failed to store survey responses for message ${messageNumber}:`, surveyError);
+            }
+          }
         } catch (logError) {
           console.error(`Failed to log message ${messageNumber} SMS delivery:`, logError);
           // Don't fail the main operation if logging fails
@@ -245,6 +267,7 @@ export const sendBatchImageSms = action({
           imageCount: storageIds.length,
           eventName: eventName,
           disclaimerEnabled: disclaimerEnabled,
+          surveyResponses: surveyResponses,
         });
         console.log("Batch SMS failure logged successfully");
       } catch (logError) {

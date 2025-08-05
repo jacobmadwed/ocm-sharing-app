@@ -196,10 +196,17 @@ export const sendBatchImageEmail = action({
     filenames: v.array(v.string()),
     eventName: v.optional(v.string()),
     disclaimerEnabled: v.optional(v.boolean()),
+    surveyResponses: v.optional(v.array(v.object({
+      questionId: v.string(),
+      answer: v.string(),
+    }))),
   },
-  handler: async (ctx, { toEmail, subject, message, storageIds, filenames, eventName, disclaimerEnabled }) => {
+  handler: async (ctx, { toEmail, subject, message, storageIds, filenames, eventName, disclaimerEnabled, surveyResponses }) => {
     try {
       console.log(`Starting batch email send process for ${storageIds.length} images...`);
+      console.log(`Survey responses received in Convex Email action:`, surveyResponses);
+      console.log(`Event name received in Convex Email action:`, eventName);
+      console.log(`Disclaimer enabled received in Convex Email action:`, disclaimerEnabled);
       
       // Get all files and convert to base64 attachments
       const attachments: any[] = [];
@@ -336,8 +343,23 @@ export const sendBatchImageEmail = action({
           imageCount: attachments.length,
           eventName: eventName,
           disclaimerEnabled: disclaimerEnabled,
+          surveyResponses: surveyResponses,
         });
         console.log("Batch email delivery logged successfully");
+        
+        // Store survey responses separately if provided
+        if (surveyResponses && surveyResponses.length > 0 && eventName) {
+          try {
+            await ctx.runMutation(internal.deliveryLogs.storeSurveyResponses, {
+              eventName: eventName,
+              recipient: toEmail,
+              responses: surveyResponses,
+            });
+            console.log("Survey responses stored for batch email");
+          } catch (surveyError) {
+            console.error("Failed to store survey responses for batch email:", surveyError);
+          }
+        }
       } catch (logError) {
         console.error("Failed to log batch email delivery:", logError);
         // Don't fail the main operation if logging fails
@@ -361,6 +383,7 @@ export const sendBatchImageEmail = action({
           imageCount: storageIds.length,
           eventName: eventName,
           disclaimerEnabled: disclaimerEnabled,
+          surveyResponses: surveyResponses,
         });
         console.log("Batch email failure logged successfully");
       } catch (logError) {
