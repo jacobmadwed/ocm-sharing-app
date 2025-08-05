@@ -38,7 +38,7 @@ export function createCustomUpdater() {
     downloading: false,
     installing: false,
     error: null,
-    currentVersion: '0.1.2',
+    currentVersion: '0.1.5',
     availableVersion: null,
     releaseNotes: null,
     debugLogs: [],
